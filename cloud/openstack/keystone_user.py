@@ -208,12 +208,12 @@ def ensure_tenant_absent(keystone, tenant, check_mode):
         return True
 
 
-def ensure_user_exists_and_is_current(keystone, endpoint, user_name, password, email, tenant_name,
+def ensure_user_exists(keystone, user_name, password, email, tenant_name,
                        check_mode):
-    """ Check if user exists and has the same password
+    """ Check if user exists
 
-        Return (True, id) if a new user was created or one was updated, (False, id) if the user is 
-        up to date
+        Return (True, id) if a new user was created, (False, id) user alrady
+        exists
     """
 
     # Check if tenant already exists
@@ -223,14 +223,8 @@ def ensure_user_exists_and_is_current(keystone, endpoint, user_name, password, e
         # Tenant doesn't exist yet
         pass
     else:
-        # User does exist, check if it's current
-        try:
-            authenticate(endpoint, None, user_name, password, tenant_name)
-        except:
-            pass
-        else:
-            # It's current, we're done
-            return (False, user.id)
+        # User does exist, we're done
+        return (False, user.id)
 
     # We now know we will have to create a new user
     if check_mode:
@@ -238,12 +232,8 @@ def ensure_user_exists_and_is_current(keystone, endpoint, user_name, password, e
 
     tenant = get_tenant(keystone, tenant_name)
 
-    if (not user):
-        user = keystone.users.create(name=user_name, password=password,
+    user = keystone.users.create(name=user_name, password=password,
                                  email=email, tenant_id=tenant.id)
-    else:
-        user = keystone.users.update_password(user.id, password)
-
     return (True, user.id)
 
 
@@ -385,7 +375,7 @@ def dispatch(keystone, user=None, password=None, tenant=None,
     elif tenant and not user and not role and state == "absent":
         changed = ensure_tenant_absent(keystone, tenant, check_mode)
     elif tenant and user and not role and state == "present":
-        changed, id = ensure_user_exists_and_is_current(keystone, endpoint, user, password,
+        changed, id = ensure_user_exists(keystone, user, password,
                                          email, tenant, check_mode)
     elif tenant and user and not role and state == "absent":
         changed = ensure_user_absent(keystone, user, check_mode)
