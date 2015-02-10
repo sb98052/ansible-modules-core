@@ -260,7 +260,7 @@ def ensure_role_exists(keystone, user_name, tenant_name, role_name,
     user = get_user(keystone, user_name)
     tenant = get_tenant(keystone, tenant_name)
     roles = [x for x in keystone.roles.roles_for_user(user, tenant)
-                     if x.name == role_name]
+                     if x.name.lower() == role_name.lower()]
     count = len(roles)
 
     if count == 1:
