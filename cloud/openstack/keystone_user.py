@@ -260,7 +260,7 @@ def ensure_role_exists(keystone, user_name, tenant_name, role_name,
     user = get_user(keystone, user_name)
     tenant = get_tenant(keystone, tenant_name)
     roles = [x for x in keystone.roles.roles_for_user(user, tenant)
-                     if x.name.lower() == role_name.lower()]
+                     if x.name == role_name]
     count = len(roles)
 
     if count == 1:
@@ -338,6 +338,10 @@ def main():
     login_user = module.params['login_user']
     login_password = module.params['login_password']
     login_tenant_name = module.params['login_tenant_name']
+
+    # Keystone roles are lower case
+    if role:
+	role = role.lower()
 
     keystone = authenticate(endpoint, token, login_user, login_password, login_tenant_name)
 
