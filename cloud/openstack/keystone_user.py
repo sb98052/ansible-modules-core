@@ -192,7 +192,7 @@ def ensure_tenant_exists(keystone, tenant_name, tenant_description,
                                         description=tenant_description,
                                         enabled=True)
     return (True, ks_tenant.id)
-    
+
 
 def ensure_tenant_absent(keystone, tenant, check_mode):
     """ Ensure that a tenant does not exist
@@ -211,10 +211,10 @@ def ensure_user_exists_and_is_current(keystone, endpoint, user_name, password, e
                        check_mode):
     """ Check if user exists and has the same email and password
 
-        Return (True, id) if a new user was created or one was updated, (False, id) if the user is 
+        Return (True, id) if a new user was created or one was updated, (False, id) if the user is
         up to date
     """
-    
+
     # Check if tenant already exists
     try:
         user = get_user(keystone, user_name)
@@ -226,7 +226,7 @@ def ensure_user_exists_and_is_current(keystone, endpoint, user_name, password, e
         # User does exist, check if it's current
         try:
             authenticate(endpoint, None, user_name, password, tenant_name)
-        except: 
+        except:
             pass
         else:
             # It's current, we're done
@@ -243,7 +243,7 @@ def ensure_user_exists_and_is_current(keystone, endpoint, user_name, password, e
                                  email=email, tenant_id=tenant.id)
     else:
         user = keystone.users.update_password(user.id, password)
-        
+
     return (True, user.id)
 
 
@@ -260,7 +260,7 @@ def ensure_role_exists(keystone, user_name, tenant_name, role_name,
     user = get_user(keystone, user_name)
     tenant = get_tenant(keystone, tenant_name)
     roles = [x for x in keystone.roles.roles_for_user(user, tenant)
-                     if x.name == role_name]
+                     if x.name.lower() == role_name.lower()]
     count = len(roles)
 
     if count == 1:
@@ -279,8 +279,11 @@ def ensure_role_exists(keystone, user_name, tenant_name, role_name,
     try:
         role = get_role(keystone, role_name)
     except KeyError:
-        # Role doesn't exist yet
-        role = keystone.roles.create(role_name)
+	try:
+            role = get_role(keystone, role_name.capitalize())
+        except KeyError:
+            # Role doesn't exist yet
+            role = keystone.roles.create(role_name)
 
     # Associate the role with the user in the admin
     keystone.roles.add_user_role(user, role, tenant)
@@ -338,10 +341,6 @@ def main():
     login_user = module.params['login_user']
     login_password = module.params['login_password']
     login_tenant_name = module.params['login_tenant_name']
-
-    # Keystone roles are lower case
-    if role:
-	role = role.lower()
 
     keystone = authenticate(endpoint, token, login_user, login_password, login_tenant_name)
 
