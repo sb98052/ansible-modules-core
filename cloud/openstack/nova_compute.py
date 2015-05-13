@@ -89,12 +89,17 @@ options:
      version_added: "1.8"
    flavor_id:
      description:
-        - The id of the flavor in which the new VM has to be created. Mutually exclusive with flavor_ram
+        - The id of the flavor in which the new VM has to be created. Mutually exclusive with flavor_ram and flavor_name
      required: false
      default: 1
+   flavor_name:
+     description:
+        - The descriptive name of the flavor in which the new VM has to be created. Mutually exclusive with flavor_ram and flavor_id
+     required: false
+     default: None
    flavor_ram:
      description:
-        - The minimum amount of ram in MB that the flavor in which the new VM has to be created must have. Mutually exclusive with flavor_id
+        - The minimum amount of ram in MB that the flavor in which the new VM has to be created must have. Mutually exclusive with flavor_id and flavor_name
      required: false
      default: 1
      version_added: "1.8"
@@ -406,6 +411,13 @@ def _get_flavor_id(module, nova):
                     (not module.params['flavor_include'] or module.params['flavor_include'] in flavor.name)):
                 return flavor.id
         module.fail_json(msg = "Error finding flavor with %sMB of RAM" % module.params['flavor_ram'])
+    elif module.params['flavor_name']:
+        flavor = nova.flavors.find(name=module.params['flavor_name'])
+        if (flavor):
+	    return flavor.id
+
+        module.fail_json(msg = "Error finding flavor named %s" % module.params['flavor_name'])
+
     return module.params['flavor_id']
 
 
@@ -529,6 +541,7 @@ def main():
         image_name                      = dict(default=None),
         image_exclude                   = dict(default='(deprecated)'),
         flavor_id                       = dict(default=1),
+        flavor_name                     = dict(default=None),
         flavor_ram                      = dict(default=None, type='int'),
         flavor_include                  = dict(default=None),
         key_name                        = dict(default=None),
@@ -551,7 +564,7 @@ def main():
             ['auto_floating_ip','floating_ip_pools'],
             ['floating_ips','floating_ip_pools'],
             ['image_id','image_name'],
-            ['flavor_id','flavor_ram'],
+            ['flavor_id','flavor_ram','flavor_name'],
         ],
     )
 
